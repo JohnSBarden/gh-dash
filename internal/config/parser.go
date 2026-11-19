@@ -67,6 +67,8 @@ func (a *ViewType) UnmarshalJSON(b []byte) error {
 		*a = IssuesView
 	case "repo":
 		*a = RepoView
+	case "inbox":
+		*a = InboxView
 	}
 
 	return nil
@@ -77,6 +79,7 @@ const (
 	PRsView           ViewType = "prs"
 	IssuesView        ViewType = "issues"
 	RepoView          ViewType = "repo"
+	InboxView         ViewType = "inbox"
 )
 
 type SectionConfig struct {
@@ -331,6 +334,10 @@ type Config struct {
 	ShowAuthorIcons          bool                         `yaml:"showAuthorIcons,omitempty"`
 	SmartFilteringAtLaunch   bool                         `yaml:"smartFilteringAtLaunch"                         default:"true"`
 	IncludeReadNotifications bool                         `yaml:"includeReadNotifications"                       default:"true"`
+	Host                     string                       `yaml:"host,omitempty"`
+	Inbox                    InboxConfig                  `yaml:"inbox,omitempty"`
+	Agent                    AgentConfig                  `yaml:"agent,omitempty"`
+	Slots                    SlotsConfig                  `yaml:"slots,omitempty"`
 }
 
 type configError struct {
@@ -356,7 +363,7 @@ func (parser ConfigParser) getDefaultConfig() Config {
 			PrApproveComment:       "LGTM",
 			IssuesLimit:            20,
 			NotificationsLimit:     20,
-			View:                   PRsView,
+			View:                   InboxView,
 			RefetchIntervalMinutes: 30,
 			Layout: LayoutConfig{
 				Prs: PrsLayoutConfig{
@@ -499,6 +506,9 @@ func (parser ConfigParser) getDefaultConfig() Config {
 		ShowAuthorIcons:          true,
 		SmartFilteringAtLaunch:   true,
 		IncludeReadNotifications: true,
+		Inbox:                    defaultInboxConfig(),
+		Agent:                    defaultAgentConfig(),
+		Slots:                    defaultSlotsConfig(),
 	}
 }
 
