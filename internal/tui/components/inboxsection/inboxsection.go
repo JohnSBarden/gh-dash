@@ -68,7 +68,13 @@ type FetchedMsg struct {
 
 type stateTickMsg struct{}
 
-func NewModel(id int, ctx *context.ProgramContext, src Source, store inbox.Store, host string) Model {
+func NewModel(
+	id int,
+	ctx *context.ProgramContext,
+	src Source,
+	store inbox.Store,
+	host string,
+) Model {
 	m := Model{Source: src, Store: store, Host: host}
 	m.BaseModel = section.NewModel(
 		ctx,

@@ -75,7 +75,9 @@ func tomlString(s string) string {
 // Herdr returns [[keys.command]] entries for herdr's config.toml.
 func Herdr(o Options) (string, error) {
 	var b strings.Builder
-	b.WriteString("# gh-dash slots: paste into herdr's config.toml, then `herdr server reload-config`\n")
+	b.WriteString(
+		"# gh-dash slots: paste into herdr's config.toml, then `herdr server reload-config`\n",
+	)
 	for _, a := range o.actions() {
 		if a.chord == "" {
 			continue
@@ -91,12 +93,20 @@ func Herdr(o Options) (string, error) {
 				b.WriteString("type = \"shell\"\n")
 				fmt.Fprintf(&b, "command = %s\n", tomlString(fmt.Sprintf(
 					`"${HERDR_BIN_PATH:-herdr}" plugin pane open --plugin %s --entrypoint slot-%s --env %s=%d`,
-					o.HerdrPlugin, a.name, SlotEnv, n,
+					o.HerdrPlugin,
+					a.name,
+					SlotEnv,
+					n,
 				)))
 			} else {
 				b.WriteString("type = \"popup\"\n")
 				fmt.Fprintf(&b, "command = %s\n", tomlString(o.slotCommand(n, a.name)))
-				fmt.Fprintf(&b, "width = %s\nheight = %s\n", tomlString(popupWidth), tomlString(popupHeight))
+				fmt.Fprintf(
+					&b,
+					"width = %s\nheight = %s\n",
+					tomlString(popupWidth),
+					tomlString(popupHeight),
+				)
 			}
 			fmt.Fprintf(&b, "description = %s\n", tomlString("gh-dash: "+fmt.Sprintf(a.verb, n)))
 		}

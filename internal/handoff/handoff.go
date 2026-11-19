@@ -45,7 +45,10 @@ func DetectEnv(getenv func(string) string, cwd, home string) Env {
 	switch {
 	case getenv("HERDR_ENV") != "" || getenv("HERDR_SOCKET_PATH") != "":
 		env.Multiplexer = Herdr
-		env.Workspace = firstNonEmpty(getenv("HERDR_WORKSPACE_ID"), getenv("HERDR_ACTIVE_WORKSPACE_ID"))
+		env.Workspace = firstNonEmpty(
+			getenv("HERDR_WORKSPACE_ID"),
+			getenv("HERDR_ACTIVE_WORKSPACE_ID"),
+		)
 		// A popup runs outside any pane; herdr passes the cwd of the pane
 		// that was active when the key was pressed.
 		env.Cwd = firstNonEmpty(getenv("HERDR_ACTIVE_PANE_CWD"), cwd)
@@ -267,7 +270,10 @@ func AgentName(repo string, number int, suffix string) string {
 	if number > 0 {
 		tail = fmt.Sprintf("-%d", number)
 	}
-	if suffix = strings.Trim(nonNameChars.ReplaceAllString(strings.ToLower(suffix), "-"), "-"); suffix != "" {
+	if suffix = strings.Trim(
+		nonNameChars.ReplaceAllString(strings.ToLower(suffix), "-"),
+		"-",
+	); suffix != "" {
 		tail += "-" + suffix
 	}
 	const maxLen = 32

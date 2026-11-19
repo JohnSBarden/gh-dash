@@ -62,7 +62,9 @@ func Send(cfg config.AgentConfig, env Env, c Context, suffix string, r Runner) (
 func sendToPane(cfg config.AgentConfig, env Env, text string, r Runner) (string, error) {
 	target := strings.TrimSpace(cfg.Pane.Target)
 	if env.Multiplexer == Plain {
-		return "", errors.New("agent.mode pane needs herdr or tmux; use mode new in a plain terminal")
+		return "", errors.New(
+			"agent.mode pane needs herdr or tmux; use mode new in a plain terminal",
+		)
 	}
 	if target == "" {
 		return "", errors.New("agent.pane.target is not set")

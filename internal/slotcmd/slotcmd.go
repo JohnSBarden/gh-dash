@@ -111,7 +111,10 @@ func readLine(in io.Reader) string {
 func done(opts Options, deps Deps, item inbox.Item) error {
 	if !opts.Yes && deps.Interactive {
 		fmt.Fprint(deps.Out, "Mark as done? [Y/n] ")
-		if answer := strings.ToLower(readLine(deps.In)); answer != "" && answer != "y" && answer != "yes" {
+		if answer := strings.ToLower(
+			readLine(deps.In),
+		); answer != "" && answer != "y" &&
+			answer != "yes" {
 			return ErrCancelled
 		}
 	}

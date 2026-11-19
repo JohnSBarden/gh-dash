@@ -76,7 +76,11 @@ func TestDetectEnv(t *testing.T) {
 		"TMUX":               "/tmp/tmux-1/default,1,0",
 		"HERDR_WORKSPACE_ID": "w2",
 	}), "/work", "/home/octocat")
-	require.Equal(t, Env{Multiplexer: Herdr, Workspace: "w2", Cwd: "/work", Home: "/home/octocat"}, e)
+	require.Equal(
+		t,
+		Env{Multiplexer: Herdr, Workspace: "w2", Cwd: "/work", Home: "/home/octocat"},
+		e,
+	)
 
 	// a herdr key binding popup: no HERDR_ENV, but the socket and active ids
 	e = DetectEnv(env(map[string]string{
@@ -97,7 +101,10 @@ func TestRenderPrompt(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, renderedPrompt, text)
 
-	text, err = RenderPrompt(`{{ .Prompt }} [{{ .Repo }}#{{ .Number }}] ({{ join ", " .Reasons }})`, item)
+	text, err = RenderPrompt(
+		`{{ .Prompt }} [{{ .Repo }}#{{ .Number }}] ({{ join ", " .Reasons }})`,
+		item,
+	)
 	require.NoError(t, err)
 	require.Equal(t, "Review this [acme/widgets#7] (review_requested, mention)", text)
 
@@ -121,10 +128,25 @@ func TestRenderCwd(t *testing.T) {
 }
 
 func TestHerdrArgv(t *testing.T) {
-	require.Equal(t, []string{"herdr", "agent", "prompt", "w1:p1", "hi"}, HerdrPromptArgv("w1:p1", "hi"))
 	require.Equal(
 		t,
-		[]string{"herdr", "tab", "create", "--workspace", "w1", "--cwd", "/src", "--label", "acme/widgets #7", "--focus"},
+		[]string{"herdr", "agent", "prompt", "w1:p1", "hi"},
+		HerdrPromptArgv("w1:p1", "hi"),
+	)
+	require.Equal(
+		t,
+		[]string{
+			"herdr",
+			"tab",
+			"create",
+			"--workspace",
+			"w1",
+			"--cwd",
+			"/src",
+			"--label",
+			"acme/widgets #7",
+			"--focus",
+		},
 		HerdrTabCreateArgv("w1", "/src", "acme/widgets #7"),
 	)
 	require.Equal(t, []string{"herdr", "tab", "create", "--focus"}, HerdrTabCreateArgv("", "", ""))
@@ -159,7 +181,9 @@ func TestResolveHerdrTarget(t *testing.T) {
 }
 
 func TestParseHerdrTabCreate(t *testing.T) {
-	pane, err := ParseHerdrTabCreate([]byte(`{"result":{"tab":{"tab_id":"w1:t3"},"root_pane":{"pane_id":"w1:p9"}}}`))
+	pane, err := ParseHerdrTabCreate(
+		[]byte(`{"result":{"tab":{"tab_id":"w1:t3"},"root_pane":{"pane_id":"w1:p9"}}}`),
+	)
 	require.NoError(t, err)
 	require.Equal(t, "w1:p9", pane)
 	_, err = ParseHerdrTabCreate([]byte(`{"result":{}}`))
@@ -171,10 +195,18 @@ func TestHerdrError(t *testing.T) {
 	require.NoError(t, HerdrError(argv, "", nil))
 	require.ErrorIs(
 		t,
-		HerdrError(argv, `{"error":{"code":"agent_blocked","message":"agent is blocked"}}`, errors.New("exit status 1")),
+		HerdrError(
+			argv,
+			`{"error":{"code":"agent_blocked","message":"agent is blocked"}}`,
+			errors.New("exit status 1"),
+		),
 		ErrAgentBlocked,
 	)
-	err := HerdrError(argv, `{"error":{"code":"agent_not_found","message":"no such agent"}}`, errors.New("exit status 1"))
+	err := HerdrError(
+		argv,
+		`{"error":{"code":"agent_not_found","message":"no such agent"}}`,
+		errors.New("exit status 1"),
+	)
 	require.EqualError(t, err, "herdr agent prompt failed: agent_not_found: no such agent")
 	err = HerdrError(argv, "", errors.New("exec: herdr not found"))
 	require.ErrorContains(t, err, "herdr not found")
@@ -207,13 +239,20 @@ func TestTmuxArgv(t *testing.T) {
 		{"tmux", "send-keys", "-t", "%3", "Enter"},
 	}, TmuxSendArgvs("%3", "two\nlines"))
 
-	require.Equal(t, []string{"tmux", "new-window", "-c", "/src", "claude 'x'"}, TmuxNewWindowArgv("/src", "claude 'x'"))
+	require.Equal(
+		t,
+		[]string{"tmux", "new-window", "-c", "/src", "claude 'x'"},
+		TmuxNewWindowArgv("/src", "claude 'x'"),
+	)
 	require.Equal(t, []string{"tmux", "new-window", "claude"}, TmuxNewWindowArgv("", "claude"))
 	require.Equal(t, []string{"sh", "-c", "claude 'x'"}, PlainArgv("claude 'x'"))
 }
 
 func paneConfig(target string) config.AgentConfig {
-	return config.AgentConfig{Mode: config.AgentModePane, Pane: config.AgentPaneConfig{Target: target}}
+	return config.AgentConfig{
+		Mode: config.AgentModePane,
+		Pane: config.AgentPaneConfig{Target: target},
+	}
 }
 
 func newConfig() config.AgentConfig {
@@ -225,7 +264,13 @@ func newConfig() config.AgentConfig {
 
 func TestSendHerdrPaneResolvesTitleInCurrentWorkspace(t *testing.T) {
 	r := &fakeRunner{outputs: map[string]string{"herdr agent list": agentList}}
-	summary, err := Send(paneConfig("title:claude agents"), Env{Multiplexer: Herdr, Workspace: "w2"}, item, "", r)
+	summary, err := Send(
+		paneConfig("title:claude agents"),
+		Env{Multiplexer: Herdr, Workspace: "w2"},
+		item,
+		"",
+		r,
+	)
 	require.NoError(t, err)
 	require.Equal(t, [][]string{
 		{"herdr", "agent", "list"},
@@ -238,7 +283,11 @@ func TestSendHerdrPaneByNameSkipsTheLookup(t *testing.T) {
 	r := &fakeRunner{}
 	_, err := Send(paneConfig("reviewer"), Env{Multiplexer: Herdr}, item, "", r)
 	require.NoError(t, err)
-	require.Equal(t, [][]string{{"herdr", "agent", "prompt", "reviewer", renderedPrompt}}, r.argvs())
+	require.Equal(
+		t,
+		[][]string{{"herdr", "agent", "prompt", "reviewer", renderedPrompt}},
+		r.argvs(),
+	)
 }
 
 func TestSendHerdrPaneSurfacesBlockedAgentWithoutRetrying(t *testing.T) {
@@ -254,10 +303,27 @@ func TestSendHerdrNewCreatesTabStartsAgentAndPrompts(t *testing.T) {
 	r := &fakeRunner{outputs: map[string]string{
 		"herdr tab create": `{"result":{"root_pane":{"pane_id":"w2:p9"}}}`,
 	}}
-	summary, err := Send(newConfig(), Env{Multiplexer: Herdr, Workspace: "w2", Cwd: "/src"}, item, "k3x", r)
+	summary, err := Send(
+		newConfig(),
+		Env{Multiplexer: Herdr, Workspace: "w2", Cwd: "/src"},
+		item,
+		"k3x",
+		r,
+	)
 	require.NoError(t, err)
 	require.Equal(t, [][]string{
-		{"herdr", "tab", "create", "--workspace", "w2", "--cwd", "/src", "--label", "acme/widgets #7", "--focus"},
+		{
+			"herdr",
+			"tab",
+			"create",
+			"--workspace",
+			"w2",
+			"--cwd",
+			"/src",
+			"--label",
+			"acme/widgets #7",
+			"--focus",
+		},
 		{"herdr", "agent", "start", "gd-widgets-7-k3x", "--kind", "codex", "--pane", "w2:p9"},
 		{"herdr", "agent", "prompt", "gd-widgets-7-k3x", renderedPrompt},
 	}, r.argvs())
@@ -266,8 +332,12 @@ func TestSendHerdrNewCreatesTabStartsAgentAndPrompts(t *testing.T) {
 
 func TestSendHerdrNewStopsWhenTheAgentDoesNotStart(t *testing.T) {
 	r := &fakeRunner{
-		outputs: map[string]string{"herdr tab create": `{"result":{"root_pane":{"pane_id":"w2:p9"}}}`},
-		fail:    map[string]string{"herdr agent start": `{"error":{"code":"agent_not_ready","message":"not ready"}}`},
+		outputs: map[string]string{
+			"herdr tab create": `{"result":{"root_pane":{"pane_id":"w2:p9"}}}`,
+		},
+		fail: map[string]string{
+			"herdr agent start": `{"error":{"code":"agent_not_ready","message":"not ready"}}`,
+		},
 	}
 	_, err := Send(newConfig(), Env{Multiplexer: Herdr}, item, "", r)
 	require.ErrorContains(t, err, "agent_not_ready")

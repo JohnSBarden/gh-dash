@@ -51,12 +51,14 @@ gh dash bindings --herdr --plugin gh-dash
 }
 
 func init() {
-	bindingsCmd.Flags().Bool("herdr", false, "print [[keys.command]] entries for herdr's config.toml")
+	bindingsCmd.Flags().
+		Bool("herdr", false, "print [[keys.command]] entries for herdr's config.toml")
 	bindingsCmd.Flags().Bool("tmux", false, "print bind-key lines for tmux.conf")
 	bindingsCmd.MarkFlagsMutuallyExclusive("herdr", "tmux")
 	bindingsCmd.MarkFlagsOneRequired("herdr", "tmux")
 	bindingsCmd.Flags().String("bin", "gh dash", "how the bindings invoke gh-dash")
 	bindingsCmd.Flags().String("state-dir", "", "pass this state directory to every slot command")
-	bindingsCmd.Flags().String("plugin", "", "herdr only: open the popup panes of this plugin id instead")
+	bindingsCmd.Flags().
+		String("plugin", "", "herdr only: open the popup panes of this plugin id instead")
 	rootCmd.AddCommand(bindingsCmd)
 }

@@ -52,7 +52,13 @@ func newInboxTestModel(t *testing.T, view config.ViewType) (*Model, *inboxsectio
 	issueSec := issuessection.NewModel(0, ctx, config.IssuesSectionConfig{}, time.Now(), time.Now())
 	m.issues = []section.Section{&issueSec}
 
-	inboxSec := inboxsection.NewModel(0, ctx, nil, inbox.Store{Dir: t.TempDir()}, "github.example.com")
+	inboxSec := inboxsection.NewModel(
+		0,
+		ctx,
+		nil,
+		inbox.Store{Dir: t.TempDir()},
+		"github.example.com",
+	)
 	m.inbox = []section.Section{&inboxSec}
 	return m, &inboxSec
 }

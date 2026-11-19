@@ -130,13 +130,15 @@ func runSlot(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	slotCmd.Flags().Bool(slotcmd.ActionAgent, false, "ask for a prompt and hand the item to an agent")
+	slotCmd.Flags().
+		Bool(slotcmd.ActionAgent, false, "ask for a prompt and hand the item to an agent")
 	slotCmd.Flags().Bool(slotcmd.ActionDone, false, "mark the item as done")
 	slotCmd.Flags().Bool(slotcmd.ActionOpen, false, "open the item in the browser")
 	slotCmd.MarkFlagsMutuallyExclusive(slotcmd.ActionAgent, slotcmd.ActionDone, slotcmd.ActionOpen)
 	slotCmd.MarkFlagsOneRequired(slotcmd.ActionAgent, slotcmd.ActionDone, slotcmd.ActionOpen)
 	slotCmd.Flags().String("prompt", "", "prompt for --agent, instead of asking for it")
 	slotCmd.Flags().BoolP("yes", "y", false, "do not ask before marking as done")
-	slotCmd.Flags().String("state-dir", "", "directory holding slots.json (default: the panel's state directory)")
+	slotCmd.Flags().
+		String("state-dir", "", "directory holding slots.json (default: the panel's state directory)")
 	rootCmd.AddCommand(slotCmd)
 }

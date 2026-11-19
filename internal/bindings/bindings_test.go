@@ -29,7 +29,11 @@ description = "gh-dash: hand slot 3 to an agent"
 
 func TestHerdrAllActionsWithStateDirAndBin(t *testing.T) {
 	out, err := Herdr(Options{
-		Keys:     config.SlotKeysConfig{Agent: "prefix+alt+{n}", Done: "prefix+ctrl+{n}", Open: "ctrl+alt+{n}"},
+		Keys: config.SlotKeysConfig{
+			Agent: "prefix+alt+{n}",
+			Done:  "prefix+ctrl+{n}",
+			Open:  "ctrl+alt+{n}",
+		},
 		Bin:      "/opt/bin/gh-dash --config /etc/dash.yml",
 		StateDir: "/var/state/it's here",
 	})

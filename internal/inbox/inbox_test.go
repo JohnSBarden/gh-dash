@@ -137,7 +137,11 @@ func TestArrangeGroupsAndSorts(t *testing.T) {
 		pr(7, at(7), ReasonAuthor),
 	}
 	got := Arrange(items, nil, nil, nil)
-	require.Equal(t, keys([]Item{items[4], items[3], items[6], items[5], items[2], items[1], items[0]}), keys(got))
+	require.Equal(
+		t,
+		keys([]Item{items[4], items[3], items[6], items[5], items[2], items[1], items[0]}),
+		keys(got),
+	)
 	require.Equal(t, GroupReviewRequested, got[0].Group)
 	require.Equal(t, GroupMine, got[2].Group)
 	require.Equal(t, GroupMine, got[3].Group, "earliest matching group wins")
@@ -152,7 +156,11 @@ func TestArrangeCustomGroupOrder(t *testing.T) {
 		pr(3, at(3), "mention"),
 	}
 	order := NormalizeGroupOrder([]string{"notifications", "Mine", "bogus"})
-	require.Equal(t, []Group{GroupNotifications, GroupMine, GroupReviewRequested, GroupReviewed}, order)
+	require.Equal(
+		t,
+		[]Group{GroupNotifications, GroupMine, GroupReviewRequested, GroupReviewed},
+		order,
+	)
 	got := Arrange(items, nil, nil, order)
 	require.Equal(t, keys([]Item{items[2], items[1], items[0]}), keys(got))
 }
@@ -182,7 +190,12 @@ func TestPinsComeFirstInPinOrderAndSurviveDisappearing(t *testing.T) {
 	require.Equal(t, keys([]Item{items[2], items[0], gone, items[1]}), keys(got))
 	require.True(t, got[0].Pinned)
 	require.Equal(t, GroupPinned, got[1].Group, "pins are never hidden by a dismissal")
-	require.Equal(t, StateMerged, got[2].State, "a pin missing from the sources is shown from its snapshot")
+	require.Equal(
+		t,
+		StateMerged,
+		got[2].State,
+		"a pin missing from the sources is shown from its snapshot",
+	)
 	require.False(t, got[3].Pinned)
 
 	pins, pinned = TogglePin(pins, items[2])
@@ -223,7 +236,12 @@ func TestDismissedUntilUpdated(t *testing.T) {
 	require.Empty(t, Arrange([]Item{older}, nil, dismissed, nil))
 
 	item.UpdatedAt = at(2)
-	require.Len(t, Arrange([]Item{item}, nil, dismissed, nil), 1, "reappears once updated_at moves on")
+	require.Len(
+		t,
+		Arrange([]Item{item}, nil, dismissed, nil),
+		1,
+		"reappears once updated_at moves on",
+	)
 }
 
 func TestSlotsOf(t *testing.T) {
@@ -262,9 +280,14 @@ func TestStateDir(t *testing.T) {
 			"HERDR_PLUGIN_STATE_DIR": "/plugin/state",
 		}), "/home/octocat"),
 	)
-	require.Equal(t,
+	require.Equal(
+		t,
 		filepath.Join("/xdg", "gh-dash", "github.example.com"),
-		StateDir("github.example.com", env(map[string]string{"XDG_STATE_HOME": "/xdg"}), "/home/octocat"),
+		StateDir(
+			"github.example.com",
+			env(map[string]string{"XDG_STATE_HOME": "/xdg"}),
+			"/home/octocat",
+		),
 	)
 	require.Equal(t,
 		filepath.Join("/home/octocat", ".local", "state", "gh-dash", "github.com"),
