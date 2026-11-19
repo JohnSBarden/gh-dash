@@ -25,6 +25,128 @@
 
 <img src="./docs/src/assets/overview.gif" />
 
+## Fork additions: Inbox, slots and agent handoff
+
+This is a personal fork of [dlvhdr/gh-dash](https://github.com/dlvhdr/gh-dash),
+which did all the heavy lifting; everything upstream offers still works and its
+docs at [gh-dash.dev](https://gh-dash.dev) still apply. The fork keeps the
+name, module path and MIT license, and adds a notification center you can act
+on from outside the panel. Please report problems with these additions here,
+not upstream.
+
+### Inbox view
+
+A new default view (`defaults.view: inbox`, `s` cycles the views) that merges
+into one list:
+
+- your unread notifications
+- `is:open review-requested:@me`
+- `is:open author:@me`
+- `is:open reviewed-by:@me -author:@me`
+
+Items are de-duplicated by URL and keep every reason they matched. Pins come
+first, then the groups _Review requested_, _Mine_, _Reviewed by me_ and _Other
+notifications_, newest first within a group.
+
+| Key     | Action                                                                              |
+| ------- | ----------------------------------------------------------------------------------- |
+| `b`     | pin or unpin; pins persist and stay listed after the item is merged or closed       |
+| `D`     | done: marks the notification done on GitHub and hides the item until it is updated  |
+| `enter` | load the pull request or issue into the preview                                     |
+| `o`     | open in the browser                                                                 |
+
+`b` and `D` follow the `toggleBookmark` and `markAsDone` notification
+keybindings if you rebind them.
+
+### Slots
+
+The first nine rows are numbered 1-9 in the left gutter. The numbers come from
+the position in the list, never from the cursor, the scroll offset or the
+active view, and are exported to `slots.json` whenever the list changes.
+
+```sh
+gh dash slot 3 --agent   # ask for a prompt, hand it and the item to an agent
+gh dash slot 3 --done    # same as D in the panel
+gh dash slot 3 --open    # open in the browser
+```
+
+The command prints the item's title before doing anything, so a list that
+changed under your fingers is never acted on silently.
+
+### Agent handoff
+
+`--agent` works with any agent, in herdr, tmux or a plain terminal:
+
+```yaml
+agent:
+  mode: new # pane | new
+  pane:
+    # herdr: agent name, pane id or title:<substring> within the current workspace
+    # tmux: a target-pane
+    target: "title:agents"
+  new:
+    kind: claude # herdr agent kind (claude, codex, gemini, opencode, ...)
+    command: "claude {{ .Prompt | shellquote }}" # tmux and plain terminals
+    cwd: "" # Go template, default: the current directory
+  prompt: |
+    {{ .Prompt }}
+
+    {{ .Title }} — {{ .URL }}
+```
+
+Templates can use `.Prompt`, `.Title`, `.URL`, `.Repo`, `.Number`, `.Type` and
+`.Reasons`.
+
+|       | `mode: pane`                                         | `mode: new`                                              |
+| ----- | ---------------------------------------------------- | -------------------------------------------------------- |
+| herdr | `herdr agent prompt <target> <text>`                 | `herdr tab create`, `herdr agent start`, `herdr agent prompt` |
+| tmux  | `send-keys` (a bracketed paste for multi-line text)  | `new-window -c <cwd> <command>`                          |
+| plain | not available                                        | runs `command`                                           |
+
+If herdr reports the agent as blocked on an approval or question, the prompt
+is not sent and not retried.
+
+### Key bindings
+
+```sh
+gh dash bindings --herdr   # [[keys.command]] entries for herdr's config.toml
+gh dash bindings --tmux    # bind-key lines for tmux.conf
+```
+
+Both print to stdout and change nothing. The default binds `prefix+alt+1..9`
+to `slot N --agent`; add chords for the other actions in the config:
+
+```yaml
+slots:
+  keys:
+    agent: "prefix+alt+{n}"
+    done: "prefix+ctrl+{n}"
+    open: ""
+```
+
+On macOS your terminal has to send Option as Alt for `alt` chords to arrive
+(in Ghostty: `macos-option-as-alt = true`).
+
+[`contrib/herdr/herdr-plugin.toml`](./contrib/herdr/herdr-plugin.toml) is an
+optional herdr plugin with the panel as a split pane and the slot actions as
+popups; pair it with `gh dash bindings --herdr --plugin gh-dash`.
+
+### Host and state
+
+One host per running instance: `host:` in the config, else `GH_HOST`, else the
+default host of `gh`.
+
+State lives in `$GH_DASH_STATE_DIR`, else `$HERDR_PLUGIN_STATE_DIR`, else
+`$XDG_STATE_HOME/gh-dash/<host>/`:
+
+- `slots.json`: the numbered rows, with `generated_at`
+- `pins.json`: pinned items
+- `dismissed.json`: URL to the `updated_at` it was dismissed at
+
+The panel and the `slot` command must resolve the same config and state
+directory. If you start the panel with `--config`, generate the bindings with
+`--bin "gh dash --config <file>"`.
+
 ## ❤️ Sponsoring
 
 If you enjoy `DASH` and want to help, consider supporting the project with a
