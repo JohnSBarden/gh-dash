@@ -266,3 +266,47 @@ func setupConfigEnvVar(t *testing.T) func() {
 		os.Unsetenv("GH_DASH_CONFIG")
 	}
 }
+
+func TestInboxDefaultsAndOverrides(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := path.Join(dir, "config.yml")
+	require.NoError(t, os.WriteFile(cfgPath, []byte(`
+host: github.example.com
+inbox:
+  groups: [mine, review_requested]
+agent:
+  mode: pane
+  pane:
+    target: "title:agents"
+slots:
+  keys:
+    done: "prefix+ctrl+{n}"
+`), 0o644))
+
+	parsed, err := ParseConfig(Location{ConfigFlag: cfgPath, SkipGlobalConfig: true})
+	require.NoError(t, err)
+
+	require.Equal(t, InboxView, parsed.Defaults.View)
+	require.Equal(t, "github.example.com", parsed.ResolveHost())
+	require.Equal(t, []string{"mine", "review_requested"}, parsed.Inbox.Groups)
+	require.Equal(t, 50, parsed.Inbox.Limit)
+	require.Equal(t, AgentModePane, parsed.Agent.Mode)
+	require.Equal(t, "title:agents", parsed.Agent.Pane.Target)
+	require.Equal(t, "claude", parsed.Agent.New.Kind)
+	require.Equal(t, DefaultAgentPrompt, parsed.Agent.Prompt)
+	require.Equal(t, "prefix+alt+{n}", parsed.Slots.Keys.Agent)
+	require.Equal(t, "prefix+ctrl+{n}", parsed.Slots.Keys.Done)
+}
+
+func TestInvalidAgentModeIsRejected(t *testing.T) {
+	cfgPath := path.Join(t.TempDir(), "config.yml")
+	require.NoError(t, os.WriteFile(cfgPath, []byte("agent:\n  mode: sideways\n"), 0o644))
+	_, err := ParseConfig(Location{ConfigFlag: cfgPath, SkipGlobalConfig: true})
+	require.Error(t, err)
+}
+
+func TestResolveHostFallsBackToEnv(t *testing.T) {
+	t.Setenv("GH_HOST", "github.example.com")
+	require.Equal(t, "github.example.com", Config{}.ResolveHost())
+	require.Equal(t, "other.example.com", Config{Host: "other.example.com"}.ResolveHost())
+}

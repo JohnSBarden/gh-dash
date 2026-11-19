@@ -1,0 +1,44 @@
+# Optional herdr plugin for the gh-dash fork: the panel as a split pane and
+# the slot actions as popups. Link it with `herdr plugin link contrib/herdr`.
+# Dropping herdr costs only this file; everything else is plain `gh dash`.
+#
+# Plugin panes share $HERDR_PLUGIN_STATE_DIR, so the panel and the popups
+# agree on slots.json. Bind keys to the popups with:
+#   gh dash bindings --herdr --plugin gh-dash
+id = "gh-dash"
+name = "gh-dash inbox"
+version = "0.1.0"
+min_herdr_version = "0.9.0"
+description = "GitHub inbox panel with numbered slots and agent handoff"
+platforms = ["linux", "macos"]
+
+[[panes]]
+id = "panel"
+title = "gh-dash"
+placement = "split"
+command = ["gh", "dash"]
+
+# The slot number arrives as GH_DASH_SLOT (manifest commands take no arguments).
+[[panes]]
+id = "slot-agent"
+title = "gh-dash: agent"
+placement = "popup"
+width = "70%"
+height = "40%"
+command = ["gh", "dash", "slot", "--agent"]
+
+[[panes]]
+id = "slot-done"
+title = "gh-dash: done"
+placement = "popup"
+width = "70%"
+height = "40%"
+command = ["gh", "dash", "slot", "--done"]
+
+[[panes]]
+id = "slot-open"
+title = "gh-dash: open"
+placement = "popup"
+width = "70%"
+height = "40%"
+command = ["gh", "dash", "slot", "--open"]

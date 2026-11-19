@@ -147,3 +147,19 @@ confirmQuit: true
 showAuthorIcons: true
 smartFilteringAtLaunch: true
 includeReadNotifications: true
+inbox:
+  groups:
+    - review_requested
+    - mine
+    - reviewed
+    - notifications
+  limit: 50
+agent:
+  mode: new
+  new:
+    kind: claude
+    command: "claude {{ .Prompt | shellquote }}"
+  prompt: "{{ .Prompt }}\n\n{{ .Title }} — {{ .URL }}\n"
+slots:
+  keys:
+    agent: "prefix+alt+{n}"
