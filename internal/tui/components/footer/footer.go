@@ -122,6 +122,9 @@ func (m *Model) renderViewButton(view config.ViewType) string {
 	outlineBell := ""
 
 	switch view {
+	case config.InboxView:
+		icon = "\uf01c" // nf-fa-inbox
+		label = " Inbox"
 	case config.NotificationsView:
 		if m.ctx.View == config.NotificationsView {
 			icon = solidBell
@@ -179,7 +182,9 @@ func (m *Model) renderViewSwitcher(ctx *context.ProgramContext) string {
 	view := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		ctx.Styles.ViewSwitcher.ViewsSeparator.PaddingLeft(1).
-			Render(m.renderViewButton(config.NotificationsView)),
+			Render(m.renderViewButton(config.InboxView)),
+		ctx.Styles.ViewSwitcher.ViewsSeparator.Render(viewSeparator),
+		m.renderViewButton(config.NotificationsView),
 		ctx.Styles.ViewSwitcher.ViewsSeparator.Render(viewSeparator),
 		m.renderViewButton(config.PRsView),
 		ctx.Styles.ViewSwitcher.ViewsSeparator.Render(viewSeparator),

@@ -30,6 +30,7 @@ import (
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/branch"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/branchsidebar"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/footer"
+	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/inboxsection"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/issuessection"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/issueview"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/notificationrow"
@@ -63,6 +64,8 @@ type Model struct {
 	prs              []section.Section
 	issues           []section.Section
 	notifications    []section.Section
+	inbox            []section.Section
+	inboxSubject     inboxSubject
 	tabs             tabs.Model
 	ctx              *context.ProgramContext
 	taskSpinner      spinner.Model
@@ -157,6 +160,7 @@ func (m *Model) initScreen() tea.Msg {
 		showError(err)
 		return initMsg{Config: cfg}
 	}
+	cfg.ApplyHost()
 
 	var url string
 	if config.IsFeatureEnabled(config.FF_REPO_VIEW) && m.ctx.RepoPath != "" {
@@ -533,6 +537,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case key.Matches(msg, keys.IssueKeys.ViewPRs):
 				cmds = append(cmds, m.switchSelectedView())
 			}
+		case m.ctx.View == config.InboxView:
+			switch {
+			case key.Matches(msg, m.keys.OpenGithub):
+				cmds = append(cmds, m.openBrowser())
+
+			case key.Matches(msg, keys.NotificationKeys.View):
+				cmds = append(cmds, m.loadInboxSubject())
+
+			case key.Matches(msg, keys.PRKeys.ViewIssues):
+				cmds = append(cmds, m.switchSelectedView())
+			}
 		case m.ctx.View == config.NotificationsView:
 			switch {
 			case key.Matches(msg, m.keys.OpenGithub):
@@ -726,13 +741,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			markdown.InitializeMarkdownStyle(m.ctx)
 		}
 
-		cmds = append(cmds, fetchSectionsCmds, m.tabs.Init(), fetchUser,
-			m.doRefreshAtInterval(), m.doUpdateFooterAtInterval())
+		cmds = append(cmds, fetchSectionsCmds, m.fetchInboxInBackground(), m.tabs.Init(),
+			fetchUser, m.doRefreshAtInterval(), m.doUpdateFooterAtInterval())
 
 	case intervalRefresh:
 		fetchSectionsCmds := m.fetchAllViewSections()
 		m.updateTabs()
-		cmds = append(cmds, fetchSectionsCmds, m.doRefreshAtInterval())
+		cmds = append(cmds, fetchSectionsCmds, m.fetchInboxInBackground(),
+			m.doRefreshAtInterval())
+
+	case inboxSubjectFetchedMsg:
+		cmds = append(cmds, m.onInboxSubjectFetched(msg))
 
 	case userFetchedMsg:
 		m.ctx.User = msg.user
@@ -1134,6 +1153,11 @@ func (m *Model) updateSection(id int, sType string, msg tea.Msg) (cmd tea.Cmd) {
 			m.notifications[id], cmd = m.notifications[id].Update(msg)
 		}
 
+	case inboxsection.SectionType:
+		if id < len(m.inbox) && m.inbox[id] != nil {
+			m.inbox[id], cmd = m.inbox[id].Update(msg)
+		}
+
 	case prssection.SectionType:
 		updatedSection, cmd = m.prs[id].Update(msg)
 		m.prs[id] = updatedSection
@@ -1312,6 +1336,8 @@ func (m *Model) syncSidebar() tea.Cmd {
 		if m.issueSidebar.IsTextInputBoxFocused() {
 			m.sidebar.ScrollToBottom()
 		}
+	case *inboxsection.RowData:
+		m.syncInboxSidebar(row, width)
 	case *notificationrow.Data:
 		notifId := row.GetId()
 
@@ -1537,6 +1563,9 @@ func (m *Model) fetchAllViewSections() tea.Cmd {
 		cmds = append(cmds, cmd)
 		m.repo = &s
 		return tea.Batch(cmds...)
+	case config.InboxView:
+		cmds = append(cmds, inboxsection.FetchAllSections(m.inbox))
+		return tea.Batch(cmds...)
 	case config.NotificationsView:
 		notifCmd := notificationssection.FetchAllSections(m.ctx, m.notifications)
 		cmds = append(cmds, notifCmd)
@@ -1559,6 +1588,11 @@ func (m *Model) getCurrentViewSections() []section.Section {
 			return []section.Section{}
 		}
 		return []section.Section{m.repo}
+	case config.InboxView:
+		if len(m.inbox) == 0 {
+			return []section.Section{}
+		}
+		return m.inbox
 	case config.NotificationsView:
 		if len(m.notifications) == 0 {
 			return []section.Section{}
@@ -1585,9 +1619,11 @@ func (m *Model) switchSelectedView() tea.Cmd {
 		m.notificationView.ClearSubject()
 	}
 
-	// View cycle: Notifications → PRs → Issues (→ Repo if enabled) → Notifications
+	// View cycle: Inbox → Notifications → PRs → Issues (→ Repo if enabled) → Inbox
 	if repoFF {
 		switch m.ctx.View {
+		case config.InboxView:
+			m.ctx.View = config.NotificationsView
 		case config.NotificationsView:
 			m.ctx.View = config.PRsView
 		case config.PRsView:
@@ -1595,16 +1631,18 @@ func (m *Model) switchSelectedView() tea.Cmd {
 		case config.IssuesView:
 			m.ctx.View = config.RepoView
 		case config.RepoView:
-			m.ctx.View = config.NotificationsView
+			m.ctx.View = config.InboxView
 		}
 	} else {
 		switch m.ctx.View {
+		case config.InboxView:
+			m.ctx.View = config.NotificationsView
 		case config.NotificationsView:
 			m.ctx.View = config.PRsView
 		case config.PRsView:
 			m.ctx.View = config.IssuesView
 		default:
-			m.ctx.View = config.NotificationsView
+			m.ctx.View = config.InboxView
 		}
 	}
 
@@ -1934,6 +1972,7 @@ func (m *Model) initSections() {
 	m.prs = prssection.InitSections(m.ctx)
 	m.issues = issuessection.InitSections(m.ctx)
 	m.notifications = notificationssection.InitSections(m.ctx)
+	m.inbox = inboxsection.InitSections(m.ctx)
 }
 
 func (m *Model) isViewSectionsStale() bool {

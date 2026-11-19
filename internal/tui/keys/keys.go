@@ -77,6 +77,8 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 	case config.RepoView:
 		additionalKeys = BranchFullHelp()
 		customKeys = append(customKeys, CustomBranchBindings...)
+	case config.InboxView:
+		additionalKeys = InboxFullHelp()
 	case config.NotificationsView:
 		additionalKeys = NotificationFullHelp()
 		customKeys = append(customKeys, CustomNotificationBindings...)

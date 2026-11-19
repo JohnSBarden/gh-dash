@@ -190,6 +190,13 @@ func TestPinsComeFirstInPinOrderAndSurviveDisappearing(t *testing.T) {
 	require.Len(t, pins, 2)
 }
 
+func TestArrangeDropsUnpinnedItemsWithoutReason(t *testing.T) {
+	lookedUp := pr(1, at(1))
+	pins, _ := TogglePin(nil, lookedUp)
+	require.Len(t, Arrange([]Item{lookedUp}, pins, nil, nil), 1)
+	require.Empty(t, Arrange([]Item{lookedUp}, nil, nil, nil))
+}
+
 func TestRefreshPins(t *testing.T) {
 	old := pr(1, at(1), ReasonMine)
 	pins, _ := TogglePin(nil, old)
@@ -249,6 +256,13 @@ func TestStateDir(t *testing.T) {
 		}), "/home/octocat"),
 	)
 	require.Equal(t,
+		"/override",
+		StateDir("github.example.com", env(map[string]string{
+			StateDirEnv:              "/override",
+			"HERDR_PLUGIN_STATE_DIR": "/plugin/state",
+		}), "/home/octocat"),
+	)
+	require.Equal(t,
 		filepath.Join("/xdg", "gh-dash", "github.example.com"),
 		StateDir("github.example.com", env(map[string]string{"XDG_STATE_HOME": "/xdg"}), "/home/octocat"),
 	)
@@ -300,4 +314,26 @@ func TestStoreRoundTrip(t *testing.T) {
 	entries, err := os.ReadDir(store.Dir)
 	require.NoError(t, err)
 	require.Len(t, entries, 3, "no temp files are left behind")
+}
+
+func TestStoreDoneDismissesAndUnpins(t *testing.T) {
+	store := Store{Dir: t.TempDir()}
+	item := pr(1, at(1), ReasonMine)
+	other := pr(2, at(2), ReasonMine)
+
+	pinned, err := store.TogglePin(item)
+	require.NoError(t, err)
+	require.True(t, pinned)
+	_, err = store.TogglePin(other)
+	require.NoError(t, err)
+
+	require.NoError(t, store.Done(item))
+
+	pins, err := store.LoadPins()
+	require.NoError(t, err)
+	require.Len(t, pins, 1)
+	require.Equal(t, other.Key, pins[0].Key)
+	dismissed, err := store.LoadDismissed()
+	require.NoError(t, err)
+	require.Equal(t, []string{other.Key}, keys(Arrange([]Item{item}, pins, dismissed, nil)))
 }

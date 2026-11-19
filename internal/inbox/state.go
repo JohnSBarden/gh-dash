@@ -16,12 +16,19 @@ const (
 	stateDirName = "gh-dash"
 )
 
+// StateDirEnv overrides the state directory outright. It lets a panel and a
+// slot command that run in different environments agree on one location.
+const StateDirEnv = "GH_DASH_STATE_DIR"
+
 // StateDir returns where the inbox keeps its files for a host:
-// $HERDR_PLUGIN_STATE_DIR when set, else $XDG_STATE_HOME/gh-dash/<host>.
-// getenv and home are injected to keep the function pure.
+// $GH_DASH_STATE_DIR, else $HERDR_PLUGIN_STATE_DIR, else
+// $XDG_STATE_HOME/gh-dash/<host>. getenv and home are injected to keep the
+// function pure.
 func StateDir(host string, getenv func(string) string, home string) string {
-	if dir := getenv("HERDR_PLUGIN_STATE_DIR"); dir != "" {
-		return dir
+	for _, name := range []string{StateDirEnv, "HERDR_PLUGIN_STATE_DIR"} {
+		if dir := getenv(name); dir != "" {
+			return dir
+		}
 	}
 	base := getenv("XDG_STATE_HOME")
 	if base == "" {
@@ -247,4 +254,36 @@ func writeJSONAtomic(path string, v any) error {
 		return err
 	}
 	return nil
+}
+
+// TogglePin flips the pin of an item on disk and reports the new state.
+func (s Store) TogglePin(item Item) (bool, error) {
+	pins, err := s.LoadPins()
+	if err != nil {
+		return false, err
+	}
+	pins, pinned := TogglePin(pins, item)
+	return pinned, s.SavePins(pins)
+}
+
+// Done takes the item off the list: it is dismissed at its current updated_at
+// and, because pins are never hidden, unpinned. Marking the notification
+// thread done on GitHub is up to the caller.
+func (s Store) Done(item Item) error {
+	pins, err := s.LoadPins()
+	if err != nil {
+		return err
+	}
+	kept := make([]Pin, 0, len(pins))
+	for _, p := range pins {
+		if p.Key != item.Key {
+			kept = append(kept, p)
+		}
+	}
+	if len(kept) != len(pins) {
+		if err := s.SavePins(kept); err != nil {
+			return err
+		}
+	}
+	return s.Dismiss(item)
 }

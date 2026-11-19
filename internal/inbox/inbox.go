@@ -229,7 +229,8 @@ func GroupOf(item Item, order []Group) Group {
 // then each group in order with the newest updated_at first. Dismissed items
 // are hidden until their updated_at moves past the dismissal, pinned items are
 // never hidden and stay listed from their stored snapshot when no source
-// returns them any more.
+// returns them any more. Items without a reason (looked up only because they
+// were pinned) are not listed once unpinned.
 func Arrange(items []Item, pins []Pin, dismissed Dismissed, order []Group) []Item {
 	if len(order) == 0 {
 		order = DefaultGroupOrder
@@ -261,7 +262,7 @@ func Arrange(items []Item, pins []Pin, dismissed Dismissed, order []Group) []Ite
 	}
 	rest := make([]Item, 0, len(items))
 	for _, item := range items {
-		if pinned[item.Key] || dismissed.Hides(item) {
+		if pinned[item.Key] || len(item.Reasons) == 0 || dismissed.Hides(item) {
 			continue
 		}
 		item.Pinned = false
