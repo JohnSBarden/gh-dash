@@ -57,6 +57,7 @@ type Model struct {
 	slotsWritten bool
 	stateTimes   [2]time.Time
 	polling      bool
+	tickId       int
 }
 
 // FetchedMsg carries the merged items of a finished fetch.
@@ -66,7 +67,9 @@ type FetchedMsg struct {
 	Err    error
 }
 
-type stateTickMsg struct{}
+// stateTickMsg carries the id of the poll that armed it, so a tick delivered
+// more than once re-arms the poll only once.
+type stateTickMsg struct{ id int }
 
 func NewModel(
 	id int,
@@ -135,6 +138,10 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 		}
 
 	case stateTickMsg:
+		if msg.id != m.tickId {
+			break
+		}
+		m.tickId++
 		if m.fetched && m.Store.ModTimes() != m.stateTimes {
 			m.rebuild()
 		}
@@ -244,8 +251,9 @@ func (m *Model) markDone() tea.Cmd {
 }
 
 func (m *Model) pollState() tea.Cmd {
+	id := m.tickId
 	return tea.Tick(statePollInterval, func(time.Time) tea.Msg {
-		return section.SectionMsg{Id: m.Id, Type: SectionType, InternalMsg: stateTickMsg{}}
+		return section.SectionMsg{Id: m.Id, Type: SectionType, InternalMsg: stateTickMsg{id: id}}
 	})
 }
 

@@ -331,3 +331,16 @@ func TestRenderPreview(t *testing.T) {
 	require.Contains(t, out, "acme/widgets #1")
 	require.Contains(t, out, "Review requested")
 }
+
+func TestDuplicateStateTickRearmsOnce(t *testing.T) {
+	m := newTestModel(t, newSource())
+	tick := stateTickMsg{id: m.tickId}
+
+	_, cmd := m.Update(tick)
+	require.NotNil(t, cmd)
+	require.Equal(t, 1, m.tickId)
+
+	// ui.go can deliver the same tick a second time; it must be ignored.
+	m.Update(tick)
+	require.Equal(t, 1, m.tickId)
+}
